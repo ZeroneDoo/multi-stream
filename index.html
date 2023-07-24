@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="keywords" content="JKT48,JKT,Jakarta,indonesia,AKB48,SKE48,NMB48,HKT48,NGT48,STU48,BNK48,MNL48,SGO48,CGM48">
+    <title>Multi Stream</title>
+    <!-- tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+                colors: {
+                    'primary': '#CD0C0D',
+                },
+                fontFamily: {
+                    'nunito': ['Nunito, sans-serif'],
+                },
+            }
+          }
+        }
+    </script>
+    <style>
+        .video-wrapper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        .video-wrapper::before {
+            content: "";
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 20px;
+            height: 20px;
+            background-color: #ccc;
+            border-radius: 50%;
+            transform: translate(50%, -50%);
+            z-index: 1;
+        }
+        .delete-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            transform: translate(50%, -50%);
+            z-index: 10;
+            opacity: 0.5;
+            background: none;
+            border: none;
+            color: #fff;
+            padding: 0;
+        }
+        
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
+    </style>
+    <!-- font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Quicksand:wght@600&display=swap"
+        rel="stylesheet">
+    <!-- font awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://browser.sentry-cdn.com/6.2.2/bundle.min.js" crossorigin="anonymous"></script>
+</head>
+<body class="font-nunito">
+    <div>
+        <form id="m3u-form" class="w-[80%] sm:w-1/2 mx-auto my-7 flex">
+            <input type="text" autocomplete="off" name="links" id="m3u-links" placeholder="Masukan link M3U" class="border rounded-tl rounded-bl p-2 border-['#C0c0c0'] focus:outline-primary focus: w-full">
+            <button id="btn-m3u" class="font-semibold bg-primary text-white rounded-tr px-2 py-2 rounded-br text-[16px] w-[270px]">Tambah Video</button>
+        </form>
+        <div class="video-container grid grid-cols grid-rows-2 sm:grid-cols-2 sm:gap-3 my-5" id="video-container"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        var VIDEO_MAX_LIMIT = 4
+        var VIDEO_COUNT = 0
+
+        function createElementVideo(){
+            const videoWrapper = document.createElement('div')
+            videoWrapper.className = "video-wrapper"
+
+            const video = document.createElement('video')
+            video.controls = true
+            videoWrapper.appendChild(video)
+            
+            const deleteButton = document.createElement('button')
+            deleteButton.className = 'delete-button'
+            deleteButton.innerHTML = '<i class="fas fa-times"></i>'
+            deleteButton.addEventListener('click', ()=>{
+                deleteVideo(videoWrapper)
+            })
+            videoWrapper.appendChild(deleteButton)
+
+            return {videoWrapper, video}
+        }
+
+        function inputVideoForm(links){
+            const linkValue = links.value.trim() // hapus space
+            let m3uLink
+
+            if(!links.value){
+                alert("Form link tidak boleh kosong!")
+                return
+            }
+
+            if(VIDEO_COUNT >= VIDEO_MAX_LIMIT){
+                alert('Tidak boleh melebihi limit')
+                return
+            }
+
+            const { videoWrapper, video } = createElementVideo()
+            const videoContainer = document.getElementById('video-container')
+
+            if(linkValue.includes('zeronedoo.github.io')){
+                m3uLink = linkValue.split("#")[1]
+            }else{
+                m3uLink = linkValue
+            }
+            console.log(linkValue)
+
+            if(linkValue.endsWith('.m3u') || linkValue.endsWith('.m3u8')){
+                const hls = new Hls()
+                hls.loadSource(m3uLink)
+                hls.currentLevel = -1
+                hls.loadLevel = -1
+                hls.attachMedia(video)
+
+                VIDEO_COUNT++
+
+                if(VIDEO_COUNT >= VIDEO_MAX_LIMIT){
+                    document.getElementById('btn-m3u').disabled = true
+                }
+
+                links.value = ""
+
+                if(video.canPlayType('application/vnd.apple.mpegurl')){
+                    video.addEventListener('canplay', ()=>{
+                        video.play()
+                    })
+                    video.src = m3uLink
+                    video.volume = 1
+                }
+
+                videoContainer.appendChild(videoWrapper)
+            }
+        }
+
+        function deleteVideo(videoWrapper){
+            const videoContainer = document.getElementById('video-container')
+            videoContainer.removeChild(videoWrapper)
+            VIDEO_COUNT--
+
+            if(VIDEO_COUNT < VIDEO_MAX_LIMIT){
+                document.getElementById('btn-m3u').disabled = false
+            }
+        }
+        function initialize(){
+            var form = document.getElementById('m3u-form')
+            var links = document.getElementById('m3u-links')
+            var button = document.getElementById('btn-m3u')
+
+            form.addEventListener('submit', (event) => {
+                event.preventDefault()
+                inputVideoForm(links)  
+            })
+        }
+        initialize()
+    </script>
+</body>
+</html>
